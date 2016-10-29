@@ -1,0 +1,8 @@
+"quests"
+{
+	"base"		"Sandbox"
+	"title"		"Quests"
+	"maps"		""
+	"menusystem"	"1"
+	"workshopid"	"500037814"
+}
