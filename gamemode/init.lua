@@ -4,12 +4,16 @@
 
 AddCSLuaFile( "cl_buff.lua" )
 AddCSLuaFile( "cl_hud.lua" )
+AddCSLuaFile( "cl_quest.lua" )
 AddCSLuaFile( "cl_init.lua" )
 AddCSLuaFile( "sh_buff.lua" )
+AddCSLuaFile( "sh_quest.lua" )
+AddCSLuaFile( "sh_event.lua" )
 AddCSLuaFile( "shared.lua" )
 
 include( "shared.lua" )
 include( "sv_buff.lua" )
+include( "sv_quest.lua" )
 
 -- Sends to cl_hud.lua
 util.AddNetworkString( "DC_Client_Round" )
@@ -119,6 +123,22 @@ function GM:Think()
 
 	-- Used to update buffs on players, function located within sv_buff.lua
 	self:Think_Buff()
+
+	-- Update all current quests
+	for _, ply in pairs( player.GetAll() ) do
+		if ( ply.Quests != null ) then
+			for k, quest in pairs( ply.Quests ) do
+				local statuschanged = quest:Think( ply )
+				if ( statuschanged ) then
+					SendQuest( ply, k )
+					if ( quest.Removed ) then
+						RemoveQuest( ply, quest.Name )
+						table.remove( ply.Quests, k )
+					end
+				end
+			end
+		end
+	end
 end
 
 function GM:PlayerSwitchFlashlight( ply, on )
@@ -209,6 +229,12 @@ function table.shallowcopy( orig )
         copy = orig
     end
     return copy
+end
+
+function table.length(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
 end
 
 hook.Add( "PlayerSpawn", "DC_PlayerSpawn_HandsSetup", function( ply )

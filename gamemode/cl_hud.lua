@@ -54,6 +54,7 @@ function GM:HUDPaint()
 	self:HUDPaint_Buffs()
 	self:HUDPaint_Spells()
 	self:HUDPaint_Ghost()
+	self:HUDPaint_Quests()
 
 	-- Control point information
 	self:HUDPaint_ControlPoint_Overall()

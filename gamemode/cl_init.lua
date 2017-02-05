@@ -5,6 +5,7 @@
 include( "shared.lua" )
 include( "cl_hud.lua" )
 include( "cl_buff.lua" )
+include( "cl_quest.lua" )
 
 -- Initialization of this message is contained within class/hero.lua
 net.Receive( "DC_Client_Ghost", function( len )
@@ -140,4 +141,10 @@ function GM:DrawPlayerRing( pPlayer )
 	render.DrawQuadEasy( tr.HitPos + tr.HitNormal, tr.HitNormal, GAMEMODE.PlayerRingSize, GAMEMODE.PlayerRingSize, color )
 
 	return false
+end
+
+function table.length(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
 end
