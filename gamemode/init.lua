@@ -5,15 +5,21 @@
 AddCSLuaFile( "cl_buff.lua" )
 AddCSLuaFile( "cl_hud.lua" )
 AddCSLuaFile( "cl_quest.lua" )
+AddCSLuaFile( "cl_dialogue.lua" )
+
 AddCSLuaFile( "cl_init.lua" )
+
 AddCSLuaFile( "sh_buff.lua" )
-AddCSLuaFile( "sh_quest.lua" )
 AddCSLuaFile( "sh_event.lua" )
+AddCSLuaFile( "sh_quest.lua" )
+AddCSLuaFile( "sh_dialogue.lua" )
+
 AddCSLuaFile( "shared.lua" )
 
 include( "shared.lua" )
 include( "sv_buff.lua" )
 include( "sv_quest.lua" )
+include( "sv_dialogue.lua" )
 
 -- Sends to cl_hud.lua
 util.AddNetworkString( "DC_Client_Round" )

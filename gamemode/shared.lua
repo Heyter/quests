@@ -8,6 +8,7 @@ DeriveGamemode( "Sandbox" )
 include( "sh_buff.lua" )
 include( "sh_event.lua" )
 include( "sh_quest.lua" )
+include( "sh_dialogue.lua" )
 
 GM.Name		= "Quests"
 GM.Author 	= "Matthew Cormack (@johnjoemcbob)"

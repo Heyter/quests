@@ -2,7 +2,7 @@
 -- 04/02/17
 -- Main clientside quest visuals
 
--- Initialization of this message is contained within init.lua
+-- Initialization of this message is contained within sv_quest.lua
 net.Receive( "QU_Quest_Progress", function( len )
 	local quest = net.ReadTable()
 
