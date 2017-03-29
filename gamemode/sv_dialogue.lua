@@ -28,7 +28,7 @@ end
 -- Receives from cl_dialogue.lua
 util.AddNetworkString( "QU_Dialogue_Option" )
 
-net.Receive( "QU_Dialogue_Option", function( len )
+net.Receive( "QU_Dialogue_Option", function( len, ply )
 	-- Player must have a table of dialogues (otherwise what is this message refering to)
 	if ( ply.Dialogues == nil ) then return end
 

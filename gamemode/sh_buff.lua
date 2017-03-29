@@ -64,6 +64,29 @@ table.insert(
 table.insert(
 	GM.Buffs,
 	{
+		Name = "Relative Safety",
+		Description = "In a settlement\nyou feel safer.",
+		Icon = "icon16/house.png",
+		Time = -1, -- Added/removed manually
+		Team = TEAM_HERO,
+		Debuff = false,
+		ThinkActivate = function( self, ply )
+			
+		end,
+		Init = function( self, ply )
+			
+		end,
+		Think = function( self, ply )
+			
+		end,
+		Remove = function( self, ply )
+			
+		end
+	}
+)
+table.insert(
+	GM.Buffs,
+	{
 		Name = "Soaked",
 		Description = "Covered in water,\ncold and slower.",
 		Icon = "icon16/weather_rain.png",
@@ -211,12 +234,21 @@ table.insert(
 			
 		end,
 		Think = function( self, ply )
-			local weapon = ply:GetActiveWeapon()
-			weapon:SetNextPrimaryFire( weapon:GetNextPrimaryFire() - FrameTime() * 5 )
-			weapon:SetNextSecondaryFire( weapon:GetNextSecondaryFire() - FrameTime() * 5 )
+			-- local weapon = ply:GetActiveWeapon()
+			-- weapon:SetNextPrimaryFire( weapon:GetNextPrimaryFire() - FrameTime() * 5 )
+			-- weapon:SetNextSecondaryFire( weapon:GetNextSecondaryFire() - FrameTime() * 5 )
 		end,
 		Remove = function( self, ply )
 			
 		end
 	}
 )
+
+function GetBuffID( name )
+	for id, buff in pairs( GAMEMODE.Buffs ) do
+		if ( buff.Name == name ) then
+			return id
+		end
+	end
+	return -1
+end

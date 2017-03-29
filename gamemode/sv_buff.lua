@@ -30,9 +30,13 @@ function plymeta:AddBuff( id )
 
 	-- Flag as affecting this player
 	self.Buffs[id] = CurTime() + GAMEMODE.Buffs[id].Time
+	if ( GAMEMODE.Buffs[id].Time == -1 ) then
+		self.Buffs[id] = -1
+	end
 
 	-- Send to client
 	SendClientBuffInformation( self, id )
+	print( "add " .. GAMEMODE.Buffs[id].Name )
 end
 
 function plymeta:RemoveBuff( id )
@@ -49,6 +53,7 @@ function plymeta:RemoveBuff( id )
 
 	-- Send to client
 	SendClientBuffInformation( self, id )
+	print( "remove " .. GAMEMODE.Buffs[id].Name )
 end
 
 function plymeta:GetBuff( id )
@@ -75,7 +80,7 @@ function GM:Think_Buff()
 		for m, buff in pairs( ply.Buffs ) do
 			if ( buff ) then
 				-- Buff still has time remaining to run logic
-				if ( buff > CurTime() ) then
+				if ( buff > CurTime() or buff == -1 ) then
 					-- Run the main buff logic on the player
 					self.Buffs[m]:Think( ply )
 				-- Time up on the buff, remove

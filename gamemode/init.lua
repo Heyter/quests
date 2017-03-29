@@ -6,6 +6,7 @@ AddCSLuaFile( "cl_buff.lua" )
 AddCSLuaFile( "cl_hud.lua" )
 AddCSLuaFile( "cl_quest.lua" )
 AddCSLuaFile( "cl_dialogue.lua" )
+AddCSLuaFile( "cl_atmosphere.lua" )
 
 AddCSLuaFile( "cl_init.lua" )
 
@@ -13,6 +14,21 @@ AddCSLuaFile( "sh_buff.lua" )
 AddCSLuaFile( "sh_event.lua" )
 AddCSLuaFile( "sh_quest.lua" )
 AddCSLuaFile( "sh_dialogue.lua" )
+AddCSLuaFile( "sh_model.lua" )
+
+local function AddCSLuaFileRecurse( dir, localdir )
+	local files, directories = file.Find( dir .. localdir .. "*", "GAME" )
+	for k, file in pairs( files ) do
+		if ( string.find( file, ".lua" ) ) then
+			AddCSLuaFile( localdir .. file )
+		end
+	end
+	for k, subdir in pairs( directories ) do
+		AddCSLuaFileRecurse( dir, localdir .. subdir .. "/" )
+	end
+end
+
+AddCSLuaFileRecurse( "gamemodes/quests/gamemode/", "model/" )
 
 AddCSLuaFile( "shared.lua" )
 
@@ -23,6 +39,8 @@ include( "sv_dialogue.lua" )
 
 -- Sends to cl_hud.lua
 util.AddNetworkString( "DC_Client_Round" )
+
+resource.AddFile( "fonts/UrbanJungleDEMO.oft" )
 
 local LastRoundInfo = {}
 function SendClientRoundInformation( textenum, endtime )
@@ -69,61 +87,6 @@ function GM:InitPostEntity()
 	self.BaseClass:InitPostEntity()
 end
 
-function GM:SpawnMapItems()
-	-- Remove all trap doors
-	local removeent = {
-		-- Landebrin Keep
-		491,
-		492,
-		493,
-		-- Grilleau Keep
-		496,
-		209,
-		217,
-	}
-	for k, ent in pairs( removeent ) do
-		ents.GetByIndex( ent ):Remove()
-	end
-
-	-- Load trigger positions and other data from sh_controlpoints.lua
-	if ( self.ControlPoints[game.GetMap()] ) then
-		for k, v in pairs( self.ControlPoints[game.GetMap()] ) do
-			v.Entity = ents.Create( "dc_trigger_control" )
-				v.Entity:SetPos( v.Position )
-				v.Entity.StartPos = v.Start
-				v.Entity.EndPos = v.End
-				v.Entity.ID = k
-				v.Entity.ZoneName = v.Title
-				v.Entity.Type = v.Type
-				v.Entity.CaptureSpeed = v.CaptureSpeed
-				if ( v.PrecedingPoint >= 1 ) then
-					v.Entity.PrecedingPoint = self.ControlPoints[game.GetMap()][v.PrecedingPoint].Entity
-				end
-			v.Entity:Spawn()
-		end
-	end
-
-	-- Load chest locations from sh_chests.lua
-	if ( self.Chests[game.GetMap()] ) then
-		for k, v in pairs( self.Chests[game.GetMap()] ) do
-			v.Entity = ents.Create( v.Type )
-				v.Entity:SetPos( v.Position )
-				v.Entity:SetAngles( v.Angle )
-				v.Entity.PrecedingPoint = v.PrecedingPoint
-				v.Entity.Level = v.Level
-			v.Entity:Spawn()
-		end
-	end
-
-	-- Spawn spell altars on the map
-	for k, v in pairs( self.AltarSpawns ) do
-		v.Entity = ents.Create( "dc_altar" )
-			v.Entity:SetPos( v.Position )
-			v.Entity:SetAngles( v.Rotation )
-		v.Entity:Spawn()
-	end
-end
-
 function GM:Think()
 	self.BaseClass:Think()
 
@@ -145,11 +108,34 @@ function GM:Think()
 			end
 		end
 	end
+
+	-- Testing wall placement
+	for _, ply in pairs( player.GetAll() ) do
+		if ( ply:KeyPressed( IN_WALK ) ) then
+			if ( ply.Fal_Place_Wall ) then
+				ply.Fal_Place_Wall:ConfirmPoint()
+			else
+				ply.Fal_Place_Wall = ents.Create( "fal_place_floor" )
+				ply.Fal_Place_Wall:SetPos( ply:GetEyeTrace().HitPos + Vector( 0, 0, 10 ) )
+				ply.Fal_Place_Wall:SetOwner( ply )
+				ply.Fal_Place_Wall:Spawn()
+			end
+		end
+		if ( ply:KeyPressed( IN_DUCK ) ) then
+			if ( ply.Fal_Place_Wall ) then
+				ply.Fal_Place_Wall:Remove()
+				ply.Fal_Place_Wall = nil
+			end
+		end
+		if ( ply:KeyPressed( IN_RELOAD ) ) then
+			ply.Fal_Place_Wall = nil
+		end
+	end
 end
 
-function GM:PlayerSwitchFlashlight( ply, on )
-	return not on
-end
+-- function GM:PlayerSwitchFlashlight( ply, on )
+	-- return !on
+-- end
 
 function GM:PlayerInitialSpawn( ply )
 	self.BaseClass:PlayerInitialSpawn( ply )
@@ -167,7 +153,7 @@ function GM:PlayerSpawn( ply )
 	end
 
 	-- No players can zoom in this gamemode
-	ply:SetCanZoom( false )
+	ply:SetCanZoom( true )
 end
 
 function GM:PostPlayerDeath( ply )
@@ -221,20 +207,17 @@ function GM:IsSpawnpointSuitable( ply, spawnpointent, bMakeSuitable )
 	return true
 end
 
--- Make a shallow copy of a table (from http://lua-users.org/wiki/CopyTable)
-function table.shallowcopy( orig )
-    local orig_type = type( orig )
-    local copy
-    if ( orig_type == "table" ) then
-        copy = {}
-        for orig_key, orig_value in pairs( orig ) do
-            copy[orig_key] = orig_value
-        end
-	-- Number, string, boolean, etc
-    else
-        copy = orig
-    end
-    return copy
+function GM:OnEntityCreated( ent )
+	self.BaseClass:OnEntityCreated( ent )
+
+	if ( ent:IsNPC() ) then
+		ent:EmitSound( "vo/npc/male01/no02.wav" )
+		ent:NavSetGoalTarget( player.GetAll()[1]:GetPos(), Vector( 0, 0, 0 ) )
+		ent:SetTarget( player.GetAll()[1] )
+		ent:SetSaveValue( "m_vecLastPosition", player.GetAll()[1]:GetPos() )
+		ent:SetSchedule( SCHED_TARGET_CHASE )
+		print( player.GetAll()[1]:GetPos() )
+	end
 end
 
 function table.length(T)
@@ -256,3 +239,80 @@ hook.Add( "PlayerSetHandsModel", "DC_PlayerSetHandsModel_Hands", function( ply, 
 		ent:SetBodyGroups( info.body )
 	end
 end )
+
+function GM:PlayerSpawnProp( ply, model )
+	if ( ply.Fal_Settlement ) then
+		local withinbounds = false
+			local vStart = ply:GetShootPos()
+			local vForward = ply:GetAimVector()
+			local trace = {}
+			trace.start = vStart
+			trace.endpos = vStart + (vForward * 2048)
+			trace.filter = ply
+
+			local tr = util.TraceLine( trace )
+			local spawnpos = tr.HitPos
+			local dist = math.Distance( spawnpos.x, spawnpos.y, ply.Fal_Settlement:GetPos().x, ply.Fal_Settlement:GetPos().y )
+			if ( dist <= ply.Fal_Settlement:GetFalRadius() + ply.Fal_Settlement.RadiusMargin ) then
+				withinbounds = true
+			end
+		if ( ply:HasWeapon( "weapon_physgun" ) and withinbounds ) then
+			local e
+				if ( string.find( model, "plates/" ) ) then
+					e = ply.Fal_Settlement:AddPlot( model, spawnpos )
+				else
+					e = ply.Fal_Settlement:AddModel( model, spawnpos )
+				end
+				local vFlushPoint = tr.HitPos - ( tr.HitNormal * 512 )	-- Find a point that is definitely out of the object in the direction of the floor
+				vFlushPoint = e:NearestPoint( vFlushPoint )			-- Find the nearest point inside the object to that point
+				vFlushPoint = e:GetPos() - vFlushPoint				-- Get the difference
+				vFlushPoint = tr.HitPos + vFlushPoint					-- Add it to our target pos
+
+				-- Set new position
+				e:SetPos( vFlushPoint )
+
+				local ang = ply:EyeAngles()
+				ang.yaw = ang.yaw + 180 -- Rotate it 180 degrees in my favour
+				ang.roll = 0
+				ang.pitch = 0
+				e:SetAngles( ang )
+
+			if ( IsValid( ply ) ) then
+				gamemode.Call( "PlayerSpawnedProp", ply, model, e )
+			end
+
+			FixInvalidPhysicsObject( e )
+
+			DoPropSpawnedEffect( e )
+
+			undo.Create( "Prop" )
+				undo.SetPlayer( ply )
+				undo.AddEntity( e )
+			undo.Finish( "Prop (" .. tostring( model ) .. ")" )
+
+			ply:AddCleanup( "props", e )
+		end
+	end
+
+	return false
+end
+
+function GM:PlayerSpawnEffect( ply, model )
+	return false
+end
+
+function GM:PlayerSpawnRagdoll( ply, model )
+	return false
+end
+
+function GM:PlayerSpawnSENT( ply, class )
+	return false
+end
+
+function GM:PlayerSpawnSWEP( ply, weapon, swep )
+	return false
+end
+
+-- function GM:PlayerSpawnNPC( ply, npc_type, weapon )
+	-- return false
+-- end

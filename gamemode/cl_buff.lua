@@ -3,16 +3,20 @@
 -- Buff/debuff clientside hud visuals
 -- Including icon/progress bar for each buff with hover-over descriptions
 
-local Buffs = {}
-
 -- Initialization of this message is contained within sv_buff.lua
 net.Receive( "DC_Client_Buff", function( len )
 	local id = net.ReadFloat()
-	Buffs[id] = net.ReadFloat()
 
-	-- If the buff still exists on the player, use clientside CurTime for visual progress decrease
-	if ( Buffs[id] > 0 ) then
-		Buffs[id] = Buffs[id] + CurTime()
+	if ( !LocalPlayer().Buffs ) then
+		LocalPlayer().Buffs = {}
+	end
+	if ( LocalPlayer().Buffs ) then
+		LocalPlayer().Buffs[id] = net.ReadFloat()
+
+		-- If the buff still exists on the player, use clientside CurTime for visual progress decrease
+		if ( LocalPlayer().Buffs[id] > 0 ) then
+			LocalPlayer().Buffs[id] = LocalPlayer().Buffs[id] + CurTime()
+		end
 	end
 end )
 
@@ -25,16 +29,20 @@ end
 
 function GM:HUDPaint_Buffs()
 	if ( LocalPlayer().Ghost ) then return end
+	if ( !LocalPlayer().Buffs ) then return end
 
 	local x = 0
 	local y = ScrH() / 4
 	local size = ScrH() / 20
-	for k, v in pairs( Buffs ) do
-		if ( v and ( v > 0 ) ) then
+	for k, v in pairs( LocalPlayer().Buffs ) do
+		if ( v ) then
 			local activetime = v - CurTime()
 				-- Flag set in some buffs to never visually decrease progress
 				if ( self.Buffs[k].Time == 0.5 ) then
 					activetime = self.Buffs[k].Time
+				end
+				if ( self.Buffs[k].Time == -1 and v != 0 ) then
+					activetime = 0.5
 				end
 			if ( activetime > 0 ) then
 				-- Backdrop
