@@ -12,8 +12,30 @@ function ENT:Initialize()
 	self.Models = {}
 end
 
+local cellsize, length, breadth, forward, right, celllength, cellbreadth, count, smallest, grid
+	cellsize = 1
+local x = 0
+local y = 0
+local gen = false
 function ENT:Think()
-	
+	if ( !gen ) then return false end
+
+	x = x + 1
+	if ( x > celllength ) then
+		x = 0
+		-- y = y + 1
+		gen = false
+	end
+	-- if ( y > cellbreadth ) then
+		-- gen = false
+	-- end
+	-- print( x .. " " .. y )
+	for y = 0, cellbreadth do
+		self:GenerateFloor_GetCells_Internal( x, y )
+	end
+
+	self:NextThink( CurTime() + 0.01 )
+	return true
 end
 
 function ENT:OnRemove()
@@ -37,12 +59,193 @@ function ENT:GenerateFloor()
 	-- Subdivide wall space into columns of varying width (depending on available props)
 	local cells
 	--while ( !cells ) do
-		cells = self.Entity:GenerateFloor_GetCells()
+		self.Entity:GenerateFloor_GetCells()
+		x = 0
+		y = 0
+		gen = true
 	--end
 
 end
 
 function ENT:GenerateFloor_GetCells()
+
+	-- Find space
+	breadth = self.Breadth:Distance( self.Length )
+	length = self.Max:Distance( self.Min )
+	celllength = math.floor( length / cellsize )
+	cellbreadth = math.floor( breadth / cellsize )
+
+	-- Find smallest and count the number of possible floor props
+	count = 0
+	smallest = GAMEMODE.Fal_Floors[1].Length
+		for k, prop in pairs( GAMEMODE.Fal_Floors ) do
+			if ( prop.Length < smallest ) then
+				smallest = prop.Length
+			end
+			if ( prop.Breadth < smallest ) then
+				smallest = prop.Breadth
+			end
+			count = count + 1
+		end
+
+	-- Define placement grid
+	grid = {}
+		for x = 0, celllength do
+			grid[x] = {}
+			for y = 0, cellbreadth do
+				grid[x][y] = false
+			end
+		end
+
+	-- Generate
+	-- for x = 0, celllength do
+		-- for y = 0, cellbreadth do
+			-- self:GenerateFloor_GetCells_Internal( x, y )
+		-- end
+	-- end
+end
+
+function ENT:GenerateFloor_GetCells_Internal( x, y )
+	local min = self.Entity:GetPos() - Vector( length / 2, breadth / 2, 0 )
+	if ( !grid[x][y] ) then
+		-- debugoverlay.Box( min, Vector( x * cellsize, y * cellsize, x * y / 20 ), Vector( x* cellsize + cellsize, y *cellsize + cellsize, x * y / 20 ), 10, Color( 255, 0, 0, 255 ) )
+
+		-- Find largest square area starting here
+		local currentlength = 0
+		local currentbreadth = 0
+			local timeout = 0
+			local inx = x
+			local iny = y
+			local incr = 1
+			while ( timeout < length ) do
+				local collide = false
+				for checkx = x, inx do
+					for checky = y, iny do
+						if ( grid[checkx][checky] ) then
+							collide = true
+							break
+						end
+					end
+					if ( collide ) then
+						break
+					end
+				end
+				-- debugoverlay.Box( min, Vector( x * cellsize, y * cellsize, x * y / 20 ), Vector( inx * cellsize, iny * cellsize, 0.5 * timeout + 1 ), 1, Color( 255, 255, 0, 255 ) )
+				if ( collide ) then
+					break
+				end
+
+				inx = inx + incr
+				iny = iny + incr
+				if ( inx > celllength and iny > cellbreadth ) then
+					break
+				elseif ( inx > celllength ) then
+					inx = celllength
+				elseif ( iny > cellbreadth ) then
+					iny = cellbreadth
+				end
+
+				currentlength = currentlength + incr
+				currentbreadth = currentbreadth + incr
+
+				timeout = timeout + 1
+			end
+		currentlength = currentlength * cellsize
+		currentbreadth = currentbreadth * cellsize
+
+		-- Remove this area if too small
+		print( currentlength )
+		if ( currentlength < smallest or currentbreadth < smallest ) then
+			-- Remove old area
+			-- table.remove( areas, 1 )
+			-- areacount = areacount - 1
+		else
+			-- Choose a random prop which fits in this space
+			local rnd = 0
+			local timeout_inner = 0
+			local props = table.shallowcopy( GAMEMODE.Fal_Floors )
+			local localcount = count
+			-- local props = { table.shallowcopy( GAMEMODE.Fal_Floors[9] ) }
+			-- local localcount = 1
+			while ( rnd == 0 and localcount > 0 and timeout_inner < 100 ) do
+				local rnd_try = math.random( 1, localcount )
+				if ( props[rnd_try].Breadth <= currentbreadth and props[rnd_try].Length <= currentlength ) then
+					rnd = rnd_try
+					break
+				end
+				table.remove( props, rnd_try )
+				localcount = localcount - 1
+
+				timeout_inner = timeout_inner + 1
+			end
+
+			if ( rnd != 0 ) then
+				-- Fill spaces
+				local relativelength = math.max( 1, math.floor( props[rnd].Breadth / cellsize ) )
+				local relativebreadth = math.max( 1, math.floor( props[rnd].Length / cellsize ) )
+				for fillx = 0, relativelength do
+					for filly = 0, relativebreadth do
+						local inx = math.min( x + fillx, celllength )
+						local iny = math.min( y + filly, cellbreadth )
+						grid[inx][iny] = true
+					end
+				end
+				-- debugoverlay.Box( min, Vector( x * cellsize, y * cellsize, x * y / 20 ), Vector( x* cellsize + cellsize * relativelength, y *cellsize + cellsize * relativebreadth, 0 ), 10, Color( 0, 0, 255, 255 ) )
+
+				-- Spawn prop
+				local ang = props[rnd].Angles
+					local rnd_ang = 0
+					local rnd_ang_y = 12
+					ang = ang + Angle( math.random( -rnd_ang, rnd_ang ), math.random( -rnd_ang_y, rnd_ang_y ), math.random( -rnd_ang, rnd_ang ) )
+				local pos = min + Vector( x * cellsize, y * cellsize, 0 ) + Vector( props[rnd].Length / 2, props[rnd].Breadth / 2, 0 )
+				-- Calculate relative positions
+					if ( props[rnd].Offset ) then
+						pos = pos + ang:Forward() * props[rnd].Offset.x
+						pos = pos + ang:Right() * props[rnd].Offset.y
+						pos = pos + ang:Up() * props[rnd].Offset.z
+					end
+					pos = pos + Vector( math.random( -1, 1 ), math.random( -1, 1 ), math.random( -1, 1 ) )
+				local ent = self:AddModel( props[rnd].Model, pos )
+				ent:SetAngles( self:GetAngles() + ang )
+			end
+
+			-- Remove old area
+			-- table.remove( areas, 1 )
+			-- areacount = areacount - 1
+		end
+	end
+end
+
+function ENT:ClearFloor()
+	if ( !self.Models ) then return end
+
+	for k, ent in pairs( self.Models ) do
+		if ( ent and ent:IsValid() ) then
+			ent:Remove()
+		end
+	end
+	self.Models = {}
+end
+
+function ENT:AddModel( model, pos, motion )
+	if ( !self.Models ) then
+		self.Models = {}
+	end
+
+	local ent = ents.Create( "prop_physics" )
+		ent:SetPos( pos )
+		ent:SetModel( model )
+		ent:Spawn()
+		local phys = ent:GetPhysicsObject()
+		if ( phys:IsValid() ) then
+			phys:EnableMotion( motion )
+		end
+		ent:SetParent( self.Entity )
+	table.insert( self.Models, ent )
+	return ent
+end
+
+function ENT:GenerateFloor_GetCells_OLD()
 	local count = 0
 	local smallest = GAMEMODE.Fal_Floors[1].Length
 		for k, prop in pairs( GAMEMODE.Fal_Floors ) do
@@ -149,33 +352,4 @@ function ENT:GenerateFloor_GetCells()
 			timeout = timeout + 1
 		end
 	return cells
-end
-
-function ENT:ClearFloor()
-	if ( !self.Models ) then return end
-
-	for k, ent in pairs( self.Models ) do
-		if ( ent and ent:IsValid() ) then
-			ent:Remove()
-		end
-	end
-	self.Models = {}
-end
-
-function ENT:AddModel( model, pos, motion )
-	if ( !self.Models ) then
-		self.Models = {}
-	end
-
-	local ent = ents.Create( "prop_physics" )
-		ent:SetPos( pos )
-		ent:SetModel( model )
-		ent:Spawn()
-		local phys = ent:GetPhysicsObject()
-		if ( phys:IsValid() ) then
-			phys:EnableMotion( motion )
-		end
-		ent:SetParent( self.Entity )
-	table.insert( self.Models, ent )
-	return ent
 end

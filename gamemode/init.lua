@@ -115,7 +115,7 @@ function GM:Think()
 			if ( ply.Fal_Place_Wall ) then
 				ply.Fal_Place_Wall:ConfirmPoint()
 			else
-				ply.Fal_Place_Wall = ents.Create( "fal_place_floor" )
+				ply.Fal_Place_Wall = ents.Create( "fal_place_wall" )
 				ply.Fal_Place_Wall:SetPos( ply:GetEyeTrace().HitPos + Vector( 0, 0, 10 ) )
 				ply.Fal_Place_Wall:SetOwner( ply )
 				ply.Fal_Place_Wall:Spawn()

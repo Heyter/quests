@@ -68,6 +68,7 @@ function ENT:Generate()
 		floorent:LookFromTo( floorent.Min, floorent.Max )
 		floorent.Whitelist = { "Thin" }
 		floorent.Blacklist = { "Partially Transparent" }
+		floorent:Spawn()
 		floorent:GenerateFloor()
 		floorent:SetParent( self.Entity )
 		table.insert( self.Models, floorent )

@@ -98,7 +98,7 @@ function PostProcess_DarkOutside()
 			lightlevel = math.Approach( lightlevel, max, add * 2 )
 		end
 	end
-	lightlevel = max
+	-- lightlevel = max
 
 	-- Convert this light level into post processing values
 	DC_PS_Brightness_Target = ps_dark_brightness + ( ( ps_default_brightness - ps_dark_brightness ) / max * lightlevel )
